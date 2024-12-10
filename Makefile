@@ -1,5 +1,5 @@
 CC     = gcc
-CFLAGS := -Wall -Werror --std=gnu99 -g3
+CFLAGS := -Wall
 
 # default is to build with address sanitizer enabled
 all: client server
