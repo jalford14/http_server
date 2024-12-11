@@ -20,9 +20,5 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    // servinfo now points to a linked list of 1 or more struct addrinfos
-
-    // ... do everything until you don't need servinfo anymore ....
-
     freeaddrinfo(servinfo); // free the linked-list
 }
