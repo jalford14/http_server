@@ -18,6 +18,7 @@
 
 #define PORT "3490"  // the port users will be connecting to
 #define MAXDATASIZE 100 // max number of bytes we can get at once 
+#define RES_SIZE 80 // max number of bytes we can send to client
 #define BACKLOG 10	 // how many pending connections queue will hold
 
 void sigchld_handler(int s)
@@ -43,6 +44,14 @@ void *get_in_addr(struct sockaddr *sa)
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+char *index_res() {
+    return "<html>Hello, world!</html>";
+}
+
+char *profile_res() {
+    return "<html>Hey, my name is Jimmy.</html>";
+}
+
 int main(void)
 {
 	int sockfd, new_fd, numbytes;  // listen on sock_fd, new connection on new_fd
@@ -52,7 +61,7 @@ int main(void)
 	struct sigaction sa;
 	int yes=1;
 	char buf[MAXDATASIZE], s[INET6_ADDRSTRLEN];
-    char response[] = "<html>Hello, world!</html>";
+    char verb[3], resource[30], response[80];
 	int rv;
 
 	memset(&hints, 0, sizeof hints);
@@ -128,11 +137,19 @@ int main(void)
             exit(1);
         }
 
-        printf("from client: %s\n*********\n", buf);
+        // split the string i.e GET /index.html
+        sscanf(buf, "%s %s", verb, resource);
+
+        // determine which web page to return
+        if (strcmp(resource, "/index.html") == 0) {
+            strcpy(response, index_res());
+        } else if (strcmp(resource, "/profile.html") == 0) {
+            strcpy(response, profile_res());
+        }
 
 		if (!fork()) { // this is the child process
 			close(sockfd); // child doesn't need the listener
-			if (send(new_fd, response, sizeof response, 0) == -1)
+			if (send(new_fd, response, RES_SIZE, 0) == -1)
 				perror("send");
 			close(new_fd);
 			exit(0);
