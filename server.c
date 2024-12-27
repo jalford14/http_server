@@ -1,4 +1,5 @@
 /*
+** This has all been directly based off of beej's guide
 ** server.c -- a stream socket server demo
 */
 
@@ -16,7 +17,7 @@
 #include <signal.h>
 
 #define PORT "3490"  // the port users will be connecting to
-
+#define MAXDATASIZE 100 // max number of bytes we can get at once 
 #define BACKLOG 10	 // how many pending connections queue will hold
 
 void sigchld_handler(int s)
@@ -44,13 +45,14 @@ void *get_in_addr(struct sockaddr *sa)
 
 int main(void)
 {
-	int sockfd, new_fd;  // listen on sock_fd, new connection on new_fd
+	int sockfd, new_fd, numbytes;  // listen on sock_fd, new connection on new_fd
 	struct addrinfo hints, *servinfo, *p;
 	struct sockaddr_storage their_addr; // connector's address information
 	socklen_t sin_size;
 	struct sigaction sa;
 	int yes=1;
-	char s[INET6_ADDRSTRLEN];
+	char buf[MAXDATASIZE], s[INET6_ADDRSTRLEN];
+    char response[] = "<html>Hello, world!</html>";
 	int rv;
 
 	memset(&hints, 0, sizeof hints);
@@ -121,9 +123,16 @@ int main(void)
 			s, sizeof s);
 		printf("server: got connection from %s\n", s);
 
+        if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
+            perror("recv");
+            exit(1);
+        }
+
+        printf("from client: %s\n*********\n", buf);
+
 		if (!fork()) { // this is the child process
 			close(sockfd); // child doesn't need the listener
-			if (send(new_fd, "<p>Hello, world!</p>", 50, 0) == -1)
+			if (send(new_fd, response, sizeof response, 0) == -1)
 				perror("send");
 			close(new_fd);
 			exit(0);

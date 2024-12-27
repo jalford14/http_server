@@ -1,4 +1,5 @@
 /*
+** This has all been directly based off of beej's guide
 ** client.c -- a stream socket client demo
 */
 
@@ -31,15 +32,16 @@ void *get_in_addr(struct sockaddr *sa)
 int main(int argc, char *argv[])
 {
 	int sockfd, numbytes;  
-	char buf[MAXDATASIZE], hostname[128];
+	char buf[MAXDATASIZE], hostname[128], request[50];
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
 	char s[INET6_ADDRSTRLEN];
 
-	if (argc != 2) {
-        gethostname(hostname, sizeof hostname);
+	if (argc != 3) {
+        printf("Format: GET <resource>");
+        exit(1);
 	} else {
-        strcpy(hostname, argv[1]);
+        gethostname(hostname, sizeof hostname);
     }
 
 	memset(&hints, 0, sizeof hints);
@@ -78,6 +80,13 @@ int main(int argc, char *argv[])
 	printf("client: connecting to %s\n", s);
 
 	freeaddrinfo(servinfo); // all done with this structure
+
+    sprintf(request, "%s %s", argv[1], argv[2]); // form the request
+
+    if (send(sockfd, request, sizeof request, 0) == -1) {
+        perror("send");
+        exit(1);
+    }
 
 	if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 	    perror("recv");
