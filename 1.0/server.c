@@ -18,7 +18,7 @@
 
 #define PORT "3490"  // the port users will be connecting to
 #define MAXDATASIZE 100 // max number of bytes we can get at once 
-#define RES_SIZE 80 // max number of bytes we can send to client
+#define RES_SIZE 1024 // max number of bytes we can send to client
 #define BACKLOG 10	 // how many pending connections queue will hold
 
 void sigchld_handler(int s)
@@ -44,12 +44,12 @@ void *get_in_addr(struct sockaddr *sa)
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-char *index_res() {
-    return "<html>Hello, world!</html>";
-}
-
-char *profile_res() {
-    return "<html>Hey, my name is Jimmy.</html>";
+void build_response(char *response, const char *body) {
+    snprintf(response, RES_SIZE,
+        "HTTP/1.0 200 OK\r\n"
+        "Content-Type: text/html\r\n"
+        "\r\n"
+        "<html>%s</html>", body);
 }
 
 int main(void)
@@ -61,7 +61,8 @@ int main(void)
 	struct sigaction sa;
 	int yes=1;
 	char buf[MAXDATASIZE], s[INET6_ADDRSTRLEN];
-    char verb[3], resource[30], response[80];
+    //   GET/POST   /index.html  HTTP/1.0
+    char method[16], req_uri[256], version[16], response[RES_SIZE];
 	int rv;
 
 	memset(&hints, 0, sizeof hints);
@@ -137,19 +138,26 @@ int main(void)
             exit(1);
         }
 
-        // split the string i.e GET /index.html
-        sscanf(buf, "%s %s", verb, resource);
+        // split the string i.e GET /index.html HTTP/1.0
+        sscanf(buf, "%s %s %s", method, req_uri, version);
 
         // determine which web page to return
-        if (strcmp(resource, "/index.html") == 0) {
-            strcpy(response, index_res());
-        } else if (strcmp(resource, "/profile.html") == 0) {
-            strcpy(response, profile_res());
+        if (strcmp(req_uri, "/index.html") == 0) {
+            build_response(response, "<h1>Hello, world!</h1>\n<p>I'm building something</p>");
+        } else if (strcmp(req_uri, "/profile.html") == 0) {
+            build_response(response, "<h1>Another one</h1>");
+        } else {
+            snprintf(response, RES_SIZE,
+                    "HTTP/1.0 404 Not Found\r\n"
+                    "Content-Type: text/html\r\n"
+                    "\r\n"
+                    "<html>404 Not Found</html>");
+
         }
 
 		if (!fork()) { // this is the child process
 			close(sockfd); // child doesn't need the listener
-			if (send(new_fd, response, RES_SIZE, 0) == -1)
+			if (send(new_fd, response, strlen(response), 0) == -1)
 				perror("send");
 			close(new_fd);
 			exit(0);
