@@ -2,10 +2,7 @@ CC     = gcc
 CFLAGS := -Wall
 
 # default is to build with address sanitizer enabled
-all: client server
-
-client: client.c
-	$(CC) -o $@ $(CFLAGS) $^
+all: server
 
 server: server.c
 	$(CC) -o $@ $(CFLAGS) $^
@@ -16,5 +13,5 @@ server: server.c
 .PHONY: clean
 
 clean:
-	rm -fr *.o client server
+	rm -fr *.o server
 
