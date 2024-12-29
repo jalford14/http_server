@@ -15,6 +15,7 @@
 #include <arpa/inet.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include "response.h"
 
 #define PORT "3490"  // the port users will be connecting to
 #define MAXDATASIZE 100 // max number of bytes we can get at once 
@@ -42,14 +43,6 @@ void *get_in_addr(struct sockaddr *sa)
 	}
 
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
-
-void build_response(char *response, const char *body) {
-    snprintf(response, RES_SIZE,
-        "HTTP/1.0 200 OK\r\n"
-        "Content-Type: text/html\r\n"
-        "\r\n"
-        "<html>%s</html>", body);
 }
 
 int main(void)
@@ -140,20 +133,7 @@ int main(void)
 
         // split the string i.e GET /index.html HTTP/1.0
         sscanf(buf, "%s %s %s", method, req_uri, version);
-
-        // determine which web page to return
-        if (strcmp(req_uri, "/index.html") == 0) {
-            build_response(response, "<h1>Hello, world!</h1>\n<p>I'm building something</p>");
-        } else if (strcmp(req_uri, "/profile.html") == 0) {
-            build_response(response, "<h1>Another one</h1>");
-        } else {
-            snprintf(response, RES_SIZE,
-                    "HTTP/1.0 404 Not Found\r\n"
-                    "Content-Type: text/html\r\n"
-                    "\r\n"
-                    "<html>404 Not Found</html>");
-
-        }
+        build_response(response, method, version, req_uri);
 
 		if (!fork()) { // this is the child process
 			close(sockfd); // child doesn't need the listener
