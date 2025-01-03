@@ -17,8 +17,8 @@
 const char *get_body(const char *uri) {
     if (strcmp(uri, "/index.html") == 0) {
         return "<html><h1>Hello, world!</h1>\n<p>I'm building something</p></html>";
-    } else if (strcmp(uri, "/profile.html") == 0) {
-        return "<html><h1>Another one</h1></html>";
+    } else if (strcmp(uri, "/posts.html") == 0) {
+        return "<html><h1>Posts</h1></html>";
     } else {
         return "<html><h1>Page not found</h1></html>";
     }
@@ -88,5 +88,15 @@ void build_response(
                 strcpy(response, build_header("200", get_body(uri), uri));
             }
         }
+    } else if (strcmp(method, "POST") == 0) {
+        FILE *fptr;
+        char buf[200];
+        fptr = fopen("db.txt", "w");
+        sscanf(uri, "%*[^?]?body=%[^\n]", buf);
+        printf("body: %s", buf);
+        fprintf(fptr, "%s\n", buf);
+        fclose(fptr);
+
+        strcpy(response, build_header("201", get_body(uri), uri));
     }
 }
