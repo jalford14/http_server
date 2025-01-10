@@ -18,7 +18,7 @@
 #include "response.h"
 
 #define PORT "3490"  // the port users will be connecting to
-#define MAXDATASIZE 100 // max number of bytes we can get at once 
+#define MAXDATASIZE 2048 // max number of bytes we can get at once 
 #define RES_SIZE 1024 // max number of bytes we can send to client
 #define BACKLOG 10	 // how many pending connections queue will hold
 
@@ -134,6 +134,7 @@ int main(void)
         // split the string i.e GET /index.html HTTP/1.0
         sscanf(buf, "%s %s %s", method, req_uri, version);
         build_response(response, method, version, req_uri);
+        printf("\nRESPONSE: %s\n", response);
 
 		if (!fork()) { // this is the child process
 			close(sockfd); // child doesn't need the listener

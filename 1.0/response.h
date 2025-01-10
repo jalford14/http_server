@@ -8,27 +8,60 @@
 // Determines what version of HTTP is being used and then builds the
 // response accordingly.
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 #define RES_SIZE 1024 // max number of bytes we can send to client
 #define URL "localhost:3490"
 
-const char *get_body(const char *uri) {
+char *get_body(const char *uri) {
     if (strcmp(uri, "/index.html") == 0) {
-        return "<html><h1>Hello, world!</h1>\n<p>I'm building something</p></html>";
+        char *response = strdup("<html><h1>Hello, world!</h1>\n<p>I'm building something</p></html>");
+        return response;
     } else if (strcmp(uri, "/posts.html") == 0) {
-        return "<html><h1>Posts</h1></html>";
+        FILE *fptr = fopen("db.txt", "r");
+        if (!fptr) {
+            return strdup("<html><h1>Error reading posts</h1></html>");
+        }
+
+        char *block = malloc(2000);
+        char *posts = malloc(2000);
+        char line[200];
+        
+        if (!block || !posts) {
+            fclose(fptr);
+            free(block);
+            free(posts);
+            return strdup("<html><h1>Memory allocation failed</h1></html>");
+        }
+
+        block[0] = '\0';
+        
+        while (fgets(line, sizeof(line), fptr)) {
+            char post[300];  // Bigger than line to accommodate HTML tags
+            snprintf(post, sizeof(post), "<p>%s</p>\n", line);
+            if (strlen(block) + strlen(post) < 2000) {
+                strcat(block, post);
+            }
+        }
+        fclose(fptr);
+
+        snprintf(posts, 2000, "<html><h1>Posts</h1>%s</html>", block);
+        free(block);
+        return posts;
     } else {
-        return "<html><h1>Page not found</h1></html>";
+        return strdup("<html><h1>Page not found</h1></html>");
     }
 }
 
 const char *build_status_line(const char *status) {
     if (strcmp(status, "200") == 0) {
         return "HTTP/1.0 200 OK\r\n";
+    } else if (strcmp(status, "201") == 0) {
+        return "HTTP/1.0 201 Created\r\n";
     } else if (strcmp(status, "404") == 0) {
-        return "HTTP/1.0 200 OK\r\n";
+        return "HTTP/1.0 404 Not Found\r\n";
     } else {
         return "HTTP/1.0 500 Internal Server Error\r\n";
     }
@@ -61,7 +94,6 @@ void build_response(
         const char *uri
     ) {
 
-    // TODO: build out HEAD and POST
     if (strcmp(method, "GET") == 0) {
         if (strcmp(version, "") == 0) {
             // HTTP/0.9
@@ -90,12 +122,13 @@ void build_response(
         }
     } else if (strcmp(method, "POST") == 0) {
         FILE *fptr;
-        char buf[200];
-        fptr = fopen("db.txt", "w");
-        sscanf(uri, "%*[^?]?body=%[^\n]", buf);
+        char *buf = (char *)malloc(200);
+        fptr = fopen("db.txt", "a");
+        sscanf(uri, "/posts.html?body=%[^\n]", buf);
         printf("body: %s", buf);
         fprintf(fptr, "%s\n", buf);
         fclose(fptr);
+        free(buf);
 
         strcpy(response, build_header("201", get_body(uri), uri));
     }
